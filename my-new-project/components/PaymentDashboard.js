@@ -26,11 +26,13 @@ const PaymentDashboard = ({ route }) => {
   const [amount, setAmount] = useState("");
   const [balance, setBalance] = useState(initialBalance);
   const [showBalance, setShowBalance] = useState(false);
+  const [showDepositBox, setShowDepositBox] = useState(false);
 
   // Animations
   const balanceAnimation = useRef(new Animated.Value(0)).current;
   const contactScaleAnimation = useRef(new Animated.Value(1)).current;
   const transactionBoxAnimation = useRef(new Animated.Value(0)).current;
+  const depositBoxAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(balanceAnimation, {
@@ -110,6 +112,7 @@ const PaymentDashboard = ({ route }) => {
           setBalance(newBalance);
         });
       } else {
+        console.log(data.message);
         Alert.alert(
           "Error",
           data.message || "Failed to complete the transaction."
@@ -125,6 +128,62 @@ const PaymentDashboard = ({ route }) => {
 
     // Reset fields and close the box
     handleContactPress(selectedContact);
+    setMpin("");
+    setAmount("");
+  };
+
+  const handleDeposit = async () => {
+    if (!mpin || !amount) {
+      Alert.alert("Error", "Please enter both MPIN and amount.");
+      return;
+    }
+
+    const payload = {
+      mobile_number: mynumber,
+      amount: parseFloat(amount),
+      mpin: mpin,
+    };
+
+    try {
+      const response = await fetch(
+        "https://finfusion-v2.onrender.com/deposit",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Alert.alert(
+          "Success",
+          `₹${amount} deposited successfully. Transaction ID: ${data.transaction_id}`
+        );
+
+        // Update balance with animation
+        const newBalance = balance + parseFloat(amount);
+        Animated.timing(balanceAnimation, {
+          toValue: newBalance / initialBalance,
+          duration: 1000,
+          easing: Easing.bezier(0.4, 0.0, 0.2, 1),
+          useNativeDriver: true,
+        }).start(() => {
+          setBalance(newBalance);
+        });
+      } else {
+        Alert.alert("Error", data.message || "Failed to complete the deposit.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "An error occurred while processing the deposit.");
+      console.error("Deposit Error:", error);
+    }
+
+    // Reset fields and close the box
+    setShowDepositBox(false);
     setMpin("");
     setAmount("");
   };
@@ -196,6 +255,7 @@ const PaymentDashboard = ({ route }) => {
             <TextInput
               style={styles.input}
               placeholder='Enter MPIN'
+              placeholderTextColor='#666'
               secureTextEntry
               value={mpin}
               onChangeText={setMpin}
@@ -203,6 +263,7 @@ const PaymentDashboard = ({ route }) => {
             <TextInput
               style={styles.input}
               placeholder='Enter Amount'
+              placeholderTextColor='#666'
               keyboardType='numeric'
               value={amount}
               onChangeText={setAmount}
@@ -288,6 +349,54 @@ const PaymentDashboard = ({ route }) => {
                 </View>
               </View>
             )}
+
+            {/* Other Features Section */}
+            <View style={styles.contactSection}>
+              <Text style={styles.sectionTitle}>Other Features</Text>
+              <View style={styles.contactSectionBackground}>
+                <TouchableOpacity
+                  style={styles.contactItem}
+                  onPress={() => setShowDepositBox(!showDepositBox)}
+                >
+                  <View style={styles.contactLogo}>
+                    <Text style={styles.contactInitials}>D</Text>
+                  </View>
+                  <View style={styles.contactDetails}>
+                    <Text style={styles.contactName}>Deposit</Text>
+                    <Text style={styles.contactNumber}>
+                      Add money to your account
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                {showDepositBox && (
+                  <View style={styles.transactionBox}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder='Enter MPIN'
+                      placeholderTextColor='#666'
+                      secureTextEntry
+                      value={mpin}
+                      onChangeText={setMpin}
+                    />
+                    <TextInput
+                      style={styles.input}
+                      placeholder='Enter Amount'
+                      placeholderTextColor='#666'
+                      keyboardType='numeric'
+                      value={amount}
+                      onChangeText={setAmount}
+                    />
+                    <TouchableOpacity
+                      style={styles.sendButton}
+                      onPress={handleDeposit}
+                    >
+                      <Text style={styles.sendButtonText}>Deposit</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </View>
 
             {contacts?.length > 0 && (
               <View style={styles.contactSection}>
@@ -447,12 +556,14 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   input: {
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#FFFFFF",
     color: "#000",
     fontSize: 16,
     padding: 12,
     borderRadius: 10,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
   },
   sendButton: {
     backgroundColor: "#000",

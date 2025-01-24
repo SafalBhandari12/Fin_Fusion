@@ -14,6 +14,8 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { LineChart } from "react-native-chart-kit";
 import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from '@expo/vector-icons'; // Importing MaterialIcons for arrow icon
+
 
 // ------------My Portfolio-------------------------//
 const MyPortfolio = ({ mynumber }) => {
@@ -401,8 +403,13 @@ const ExploreCompanies = () => {
 
   const renderCompany = ({ item }) => (
     <View style={style2.companyContainer}>
-      <Text style={style2.companyName}>{item.company_name}</Text>
-      <Text style={style2.tickerSymbol}>Ticker: {item.ticker_symbol}</Text>
+      <Text style={[style2.companyName, style2.boldText]}>
+        {item.company_name}
+      </Text>
+      <Text style={style2.tickerSymbol}>
+        <Text style={style2.boldText}>Ticker: </Text>
+        {item.ticker_symbol}
+      </Text>
       <Text style={style2.companyInfo}>{item.information}</Text>
     </View>
   );
@@ -410,6 +417,23 @@ const ExploreCompanies = () => {
   const renderCategory = ({ item }) => {
     const [categoryName, companies] = item;
     const isExpanded = expandedCategory === categoryName;
+
+    const rotateAnim = new Animated.Value(0); // For the rotation animation
+
+    const toggleAnimation = () => {
+      Animated.timing(rotateAnim, {
+        toValue: isExpanded ? 1 : 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    toggleAnimation(); // Trigger the rotation animation on toggle
+
+    const rotateDeg = rotateAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ["0deg", "180deg"], // Rotate from 0 to 180 degrees
+    });
 
     return (
       <View style={style2.categoryContainer}>
@@ -420,28 +444,42 @@ const ExploreCompanies = () => {
             isExpanded ? style2.expandedCategory : null,
           ]}
         >
-          <Text style={style2.sectionText}>{categoryName}</Text>
+          <Text
+            style={[style2.sectionText, isExpanded ? style2.boldText : null]}
+          >
+            {categoryName}
+          </Text>
+
+          <Animated.View
+            style={{ transform: [{ rotate: rotateDeg }] }} // Apply rotation to the arrow
+          >
+            <MaterialIcons
+              name='keyboard-arrow-down'
+              size={24}
+              color='#34495E'
+            />
+          </Animated.View>
         </TouchableOpacity>
 
         {isExpanded && (
-          <View style={style2.expandedContainer}>
+          <Animated.View style={[style2.expandedContainer]}>
             <FlatList
               data={companies}
               renderItem={renderCompany}
               keyExtractor={(company) => company.company_name}
             />
-          </View>
+          </Animated.View>
         )}
       </View>
     );
   };
 
   if (loading) {
-    return <Text>Loading...</Text>;
+    return <Text style={style2.loadingText}>Loading...</Text>;
   }
 
   if (error) {
-    return <Text>{error}</Text>;
+    return <Text style={style2.errorText}>{error}</Text>;
   }
 
   return (
@@ -455,52 +493,69 @@ const ExploreCompanies = () => {
 
 const style2 = StyleSheet.create({
   categoryContainer: {
-    backgroundColor: "#9AA6B2",
-    padding: 15,
+    backgroundColor: "#D3D3D3", // Light gray
+    padding: 12, // Reduced padding
+    width: "90%", // Reduced width to make it smaller
     borderRadius: 10,
-    marginBottom: 15,
+    marginBottom: 12, // Adjusted margin for a smaller container
+    alignSelf: "center", // Centers the container horizontally
   },
   categoryButton: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+    paddingVertical: 12, // Reduced vertical padding
+    paddingHorizontal: 18, // Reduced horizontal padding
     borderRadius: 8,
   },
   expandedCategory: {
-    backgroundColor: "#BDC3C7",
+    backgroundColor: "#D3D3D3", // Gray
   },
   sectionText: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#34495E",
+    fontWeight: "normal", // Default to normal weight
+    color: "#2C3E50", // Dark gray for text
+  },
+  boldText: {
+    fontWeight: "bold", // Make text bold
   },
   expandedContainer: {
     overflow: "hidden",
   },
   companyContainer: {
-    backgroundColor: "#FBFBFB",
-    padding: 12,
+    backgroundColor: "#FBFBFB", // White background
+    padding: 10, // Reduced padding for company container
+    width: "90%", // Reduced width to make it smaller
     borderRadius: 8,
-    marginBottom: 12,
-    marginTop: 10,
+    marginBottom: 10, // Adjusted margin for smaller container
+    marginTop: 8, // Reduced margin for smaller container
+    borderWidth: 0.5,
+    borderColor: "#BDC3C7", // Light gray border
+    alignSelf: "center", // Centers the container horizontally
   },
   companyName: {
     fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 6,
-    color: "#34495E",
+    color: "#2C3E50", // Dark gray
   },
   tickerSymbol: {
     fontSize: 14,
-    fontStyle: "italic",
-    marginBottom: 6,
-    color: "#5D6D7E",
+    color: "#7F8C8D", // Gray
   },
   companyInfo: {
     fontSize: 14,
-    color: "#626567",
+    color: "#95A5A6", // Light gray
+  },
+  loadingText: {
+    fontSize: 18,
+    color: "#7F8C8D", // Gray for loading text
+    textAlign: "center",
+    marginTop: 20,
+  },
+  errorText: {
+    fontSize: 18,
+    color: "#E74C3C", // Red color for errors
+    textAlign: "center",
+    marginTop: 20,
   },
 });
 // ---------------explore company ends--------------------//

@@ -14,6 +14,15 @@ import {
 const LoginScreen = ({ navigation }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [mpin, setMpin] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [signUpData, setSignUpData] = useState({
+    mobile_number: "",
+    name: "",
+    email: "",
+    password: "",
+    mpin: "",
+  });
+  const [isTyping, setIsTyping] = useState(false);
 
   const handleLogin = async () => {
     if (!phoneNumber.trim() || !mpin.trim()) {
@@ -51,13 +60,65 @@ const LoginScreen = ({ navigation }) => {
                 balance: data.user.wallet_amount,
                 contacts: data.contacts || [],
                 recentContacts: data.recent_contacts || [],
-                mynumber:phoneNumber,
+                mynumber: phoneNumber,
               },
             },
           ],
         });
       } else {
         Alert.alert("Error", data.message || "Invalid login");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Network error. Try again.");
+    }
+  };
+
+  const handleSignUp = async () => {
+    const { mobile_number, name, email, password, mpin } = signUpData;
+
+    if (
+      !mobile_number.trim() ||
+      !name.trim() ||
+      !email.trim() ||
+      !password.trim() ||
+      !mpin.trim()
+    ) {
+      Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
+
+    if (password.length < 8) {
+      Alert.alert("Error", "Password must be at least 8 characters");
+      return;
+    }
+
+    if (mpin.length !== 6) {
+      Alert.alert("Error", "MPIN must be 6 digits");
+      return;
+    }
+
+    try {
+      const response = await fetch("https://finfusion-v2.onrender.com/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mobile_number,
+          name,
+          email: email.toLowerCase(),
+          password,
+          mpin,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Alert.alert("Success", "Sign-up successful. Please log in.");
+        setIsSignUp(false);
+      } else {
+        Alert.alert("Error", data.message || "Sign-up failed");
       }
     } catch (error) {
       Alert.alert("Error", "Network error. Try again.");
@@ -71,49 +132,153 @@ const LoginScreen = ({ navigation }) => {
         style={styles.container}
       >
         <View style={styles.inner}>
-          <View style={styles.logoContainer}>
+          <View
+            style={[
+              styles.logoContainer,
+              isTyping && { transform: [{ scale: 0.8 }] },
+            ]}
+          >
             <Text style={styles.logo}>F</Text>
             <Text style={styles.appName}>FinFusion</Text>
           </View>
 
-          <View style={styles.formContainer}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Phone Number</Text>
-              <TextInput
-                style={styles.input}
-                placeholder='Enter phone number'
-                keyboardType='phone-pad'
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                placeholderTextColor='#A0A0A0'
-              />
-            </View>
+          {!isSignUp ? (
+            <>
+              <View style={styles.formContainer}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Phone Number</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder='Enter phone number'
+                    keyboardType='phone-pad'
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    onFocus={() => setIsTyping(true)}
+                    onBlur={() => setIsTyping(false)}
+                    placeholderTextColor='#A0A0A0'
+                  />
+                </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>6-Digit MPIN</Text>
-              <TextInput
-                style={styles.input}
-                placeholder='Enter MPIN'
-                keyboardType='numeric'
-                secureTextEntry
-                value={mpin}
-                onChangeText={setMpin}
-                maxLength={6}
-                placeholderTextColor='#A0A0A0'
-              />
-            </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>6-Digit MPIN</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder='Enter MPIN'
+                    keyboardType='numeric'
+                    secureTextEntry
+                    value={mpin}
+                    onChangeText={setMpin}
+                    maxLength={6}
+                    onFocus={() => setIsTyping(true)}
+                    onBlur={() => setIsTyping(false)}
+                    placeholderTextColor='#A0A0A0'
+                  />
+                </View>
 
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <Text style={styles.loginButtonText}>Login</Text>
-            </TouchableOpacity>
-          </View>
+                <TouchableOpacity
+                  style={styles.loginButton}
+                  onPress={handleLogin}
+                >
+                  <Text style={styles.loginButtonText}>Login</Text>
+                </TouchableOpacity>
+              </View>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>New to FinFusion?</Text>
-            <TouchableOpacity>
-              <Text style={styles.signupText}>Sign Up</Text>
-            </TouchableOpacity>
-          </View>
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>New to FinFusion?</Text>
+                <TouchableOpacity onPress={() => setIsSignUp(true)}>
+                  <Text style={styles.signupText}>Sign Up</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.formContainer}>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder='Enter your name'
+                    value={signUpData.name}
+                    onChangeText={(text) =>
+                      setSignUpData({ ...signUpData, name: text })
+                    }
+                    placeholderTextColor='#A0A0A0'
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Email</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder='Enter your email'
+                    keyboardType='email-address'
+                    value={signUpData.email}
+                    onChangeText={(text) =>
+                      setSignUpData({ ...signUpData, email: text })
+                    }
+                    placeholderTextColor='#A0A0A0'
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Phone Number</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder='Enter phone number'
+                    keyboardType='phone-pad'
+                    value={signUpData.mobile_number}
+                    onChangeText={(text) =>
+                      setSignUpData({ ...signUpData, mobile_number: text })
+                    }
+                    placeholderTextColor='#A0A0A0'
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Password</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder='Enter password'
+                    secureTextEntry
+                    value={signUpData.password}
+                    onChangeText={(text) =>
+                      setSignUpData({ ...signUpData, password: text })
+                    }
+                    placeholderTextColor='#A0A0A0'
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>6-Digit MPIN</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder='Enter MPIN'
+                    keyboardType='numeric'
+                    secureTextEntry
+                    value={signUpData.mpin}
+                    onChangeText={(text) =>
+                      setSignUpData({ ...signUpData, mpin: text })
+                    }
+                    maxLength={6}
+                    placeholderTextColor='#A0A0A0'
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.loginButton}
+                  onPress={handleSignUp}
+                >
+                  <Text style={styles.loginButtonText}>Sign Up</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.footer}>
+                <TouchableOpacity onPress={() => setIsSignUp(false)}>
+                  <Text style={styles.signupText}>Back to Login</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -123,80 +288,83 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
   },
   inner: {
+    paddingHorizontal: 20,
     flex: 1,
-    padding: 24,
-    justifyContent: "space-between",
+    justifyContent: "center",
   },
   logoContainer: {
     alignItems: "center",
-    marginTop: 60,
+    marginBottom: 40,
   },
   logo: {
-    fontSize: 48,
+    fontSize: 60,
     fontWeight: "bold",
-    color: "#2196F3",
-    backgroundColor: "#E3F2FD",
-    width: 80,
-    height: 80,
-    textAlign: "center",
-    lineHeight: 80,
-    borderRadius: 40,
-    marginBottom: 16,
+    color: "#0078FF",
   },
   appName: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333333",
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#555",
+    marginTop: 5,
   },
   formContainer: {
-    marginTop: 40,
+    backgroundColor: "#ffffff",
+    borderRadius: 8,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   inputContainer: {
     marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#666666",
-    marginBottom: 8,
+    fontWeight: "500",
+    color: "#333",
+    marginBottom: 5,
   },
   input: {
-    height: 48,
-    backgroundColor: "#F5F5F5",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: "#333333",
+    height: 40,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    fontSize: 14,
+    color: "#333",
+    backgroundColor: "#f9f9f9",
   },
   loginButton: {
-    height: 50,
-    backgroundColor: "#2196F3",
-    borderRadius: 12,
-    justifyContent: "center",
+    backgroundColor: "#0078FF",
+    paddingVertical: 10,
+    borderRadius: 5,
     alignItems: "center",
-    marginTop: 24,
+    marginTop: 10,
   },
   loginButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
+    color: "#ffffff",
     fontWeight: "600",
+    fontSize: 16,
   },
   footer: {
-    flexDirection: "row",
-    justifyContent: "center",
+    marginTop: 20,
     alignItems: "center",
-    padding: 16,
   },
   footerText: {
-    color: "#666666",
-    marginRight: 8,
+    fontSize: 14,
+    color: "#555",
   },
   signupText: {
-    color: "#2196F3",
+    fontSize: 14,
+    color: "#0078FF",
     fontWeight: "600",
+    marginTop: 5,
   },
 });
 

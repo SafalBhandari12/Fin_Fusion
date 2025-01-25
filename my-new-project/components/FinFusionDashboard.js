@@ -22,10 +22,19 @@ const FinFusionDashboard = ({ route }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(
-          `https://finfusion-v2.onrender.com/financial-summary?number=${mynumber}`
-        );
+        console.log(mynumber);
+      const response = await fetch(
+        "https://finfusion-v2.onrender.com/financial-summary",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ mobile_number: String(mynumber) }),
+        }
+      );
         const result = await response.json();
+        console.log(result);
         setData(result);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -136,7 +145,6 @@ const style1 = StyleSheet.create({
     textAlign: "center",
   },
 });
-
 
 // ------------------Insights Component----------------------//
 
@@ -333,7 +341,6 @@ const style2 = StyleSheet.create({
     color: "#333",
   },
 });
-
 
 //----------------------Insights components ends------------------------//
 

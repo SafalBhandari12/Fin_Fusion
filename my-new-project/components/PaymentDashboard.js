@@ -24,6 +24,7 @@ const PaymentDashboard = ({ route }) => {
   const [selectedContact, setSelectedContact] = useState(null);
   const [mpin, setMpin] = useState("");
   const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState(""); // Default category
   const [balance, setBalance] = useState(initialBalance);
   const [showBalance, setShowBalance] = useState(false);
 
@@ -62,8 +63,8 @@ const PaymentDashboard = ({ route }) => {
   };
 
   const handleSend = async () => {
-    if (!mpin || !amount) {
-      Alert.alert("Error", "Please enter both MPIN and amount.");
+    if (!mpin || !amount || !category) {
+      Alert.alert("Error", "Please enter MPIN, amount, and category.");
       return;
     }
 
@@ -76,7 +77,7 @@ const PaymentDashboard = ({ route }) => {
       sender_mobile_number: mynumber,
       receiver_mobile_number: selectedContact.mobile_number,
       amount: parseFloat(amount),
-      category: "General",
+      category: category, // Include category in the payload
     };
 
     try {
@@ -127,6 +128,7 @@ const PaymentDashboard = ({ route }) => {
     handleContactPress(selectedContact);
     setMpin("");
     setAmount("");
+    setCategory("General"); // Reset category to default
   };
 
   const contactInitials = (name) =>
@@ -208,6 +210,13 @@ const PaymentDashboard = ({ route }) => {
               keyboardType='numeric'
               value={amount}
               onChangeText={setAmount}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder='Enter Category'
+              placeholderTextColor='#666'
+              value={category}
+              onChangeText={setCategory}
             />
             <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
               <Text style={styles.sendButtonText}>Send</Text>

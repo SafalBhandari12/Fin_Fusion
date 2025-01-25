@@ -14,11 +14,11 @@ import {
   Platform,
   Button,
 } from "react-native";
+import { Alert } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LineChart } from "react-native-chart-kit";
 import { Ionicons } from "@expo/vector-icons";
-import { MaterialIcons } from '@expo/vector-icons'; // Importing MaterialIcons for arrow icon
-
+import { MaterialIcons } from "@expo/vector-icons"; // Importing MaterialIcons for arrow icon
 
 // ------------My Portfolio-------------------------//
 const MyPortfolio = ({ mynumber }) => {
@@ -28,33 +28,33 @@ const MyPortfolio = ({ mynumber }) => {
   const [selectedPeriod, setSelectedPeriod] = useState("day");
   const [fadeAnim] = useState(new Animated.Value(0));
 
+  const fetchPortfolio = async () => {
+    try {
+      const response = await fetch(
+        "https://finfusion-v2.onrender.com/portfolio",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mobile_number: mynumber }),
+        }
+      );
+
+      const data = await response.json();
+      setPortfolio(data.portfolio || []);
+      setLoading(false);
+
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
+    } catch (error) {
+      setLoading(false);
+      Alert.alert("Error", "Failed to fetch portfolio.");
+    }
+  };
+
   useEffect(() => {
-    const fetchPortfolio = async () => {
-      try {
-        const response = await fetch(
-          "https://finfusion-v2.onrender.com/portfolio",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mobile_number: mynumber }),
-          }
-        );
-
-        const data = await response.json();
-        setPortfolio(data.portfolio || []);
-        setLoading(false);
-
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }).start();
-      } catch (error) {
-        setLoading(false);
-        Alert.alert("Error", "Failed to fetch portfolio.");
-      }
-    };
-
     fetchPortfolio();
   }, [mynumber]);
 
@@ -78,6 +78,14 @@ const MyPortfolio = ({ mynumber }) => {
   ) => {
     const endpoint = type === "buy" ? "/buy_stock" : "/sell_stock";
 
+    console.log("Transaction initiated:", {
+      type,
+      stockSymbol,
+      companyName,
+      quantity,
+      pricePerShare,
+    });
+
     try {
       const response = await fetch(
         `https://finfusion-v2.onrender.com${endpoint}`,
@@ -85,44 +93,35 @@ const MyPortfolio = ({ mynumber }) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            mobile_number: mynumber,
-            stock_symbol: stockSymbol,
-            company_name: companyName,
-            quantity,
-            price_per_share: pricePerShare,
+            mobile_number: String(mynumber), // Ensure this matches the backend field name
+            stock_symbol: String(stockSymbol), // Ensure this matches the backend field name
+            company_name: String(companyName), // Ensure this matches the backend field name
+            quantity: parseInt(quantity, 10), // Ensure this is a number
+            price_per_share: parseFloat(pricePerShare), // Ensure this is a number
           }),
         }
       );
 
+      console.log("Response status:", response.status);
+
       const data = await response.json();
+      console.log("Response data:", data);
+
       if (response.ok) {
         Alert.alert(
           "Success",
           `${type === "buy" ? "Bought" : "Sold"} successfully.`
         );
-        // Optionally, refresh the portfolio after the transaction
-        setPortfolio((prevPortfolio) =>
-          prevPortfolio.map((item) =>
-            item.Symbol === stockSymbol
-              ? {
-                  ...item,
-                  "Total Price":
-                    type === "buy"
-                      ? item["Total Price"] + quantity * pricePerShare
-                      : item["Total Price"] - quantity * pricePerShare,
-                }
-              : item
-          )
-        );
+        // Refetch the portfolio to reflect the changes
+        fetchPortfolio();
       } else {
         Alert.alert("Error", data.message || "Transaction failed.");
       }
     } catch (error) {
+      console.error("Transaction error:", error);
       Alert.alert("Error", "Something went wrong. Please try again.");
     }
   };
-
-  // Function to reduce the number of data points for better visibility
   const reduceDataPoints = (data, skip = 5) => {
     return data.filter((_, index) => index % skip === 0);
   };
@@ -130,16 +129,15 @@ const MyPortfolio = ({ mynumber }) => {
   const renderPortfolioItem = ({ item }) => {
     const isExpanded = expanded[item.Symbol];
 
-    // Prepare chart data based on selected period
     let graphData = { labels: [], datasets: [] };
 
     const formatDate = (dateStr) => {
       const date = new Date(dateStr);
-      return date.getDate(); // Extract day, week, or month depending on the period
+      return date.getDate();
     };
 
     if (selectedPeriod === "day") {
-      const reducedDailyData = reduceDataPoints(item.ShowMore.Graph.Daily, 5); // Skip 5 data points
+      const reducedDailyData = reduceDataPoints(item.ShowMore.Graph.Daily, 5);
       graphData = {
         labels: reducedDailyData.map((entry) => formatDate(entry.Time)),
         datasets: [
@@ -151,9 +149,9 @@ const MyPortfolio = ({ mynumber }) => {
         ],
       };
     } else if (selectedPeriod === "week") {
-      const reducedWeeklyData = reduceDataPoints(item.ShowMore.Graph.Weekly, 2); // Skip 2 data points
+      const reducedWeeklyData = reduceDataPoints(item.ShowMore.Graph.Weekly, 2);
       graphData = {
-        labels: reducedWeeklyData.map((_, index) => `${index + 1}`), // Use index + 1 as label
+        labels: reducedWeeklyData.map((_, index) => `${index + 1}`),
         datasets: [
           {
             data: reducedWeeklyData.map((entry) => entry.Price),
@@ -166,7 +164,7 @@ const MyPortfolio = ({ mynumber }) => {
       const reducedMonthlyData = reduceDataPoints(
         item.ShowMore.Graph.Monthly,
         3
-      ); // Skip 3 data points
+      );
       graphData = {
         labels: reducedMonthlyData.map((entry) => formatDate(entry.Time)),
         datasets: [
@@ -497,9 +495,7 @@ const ExploreCompanies = ({ onSendPayload }) => {
       {/* Add Chat Button */}
       <TouchableOpacity
         style={style2.chatButton}
-        onPress={() =>
-          onSendPayload(item.company_name, item.ticker_symbol)
-        }
+        onPress={() => onSendPayload(item.company_name, item.ticker_symbol)}
       >
         <Text style={style2.chatButtonText}>Chat</Text>
       </TouchableOpacity>
@@ -546,9 +542,9 @@ const ExploreCompanies = ({ onSendPayload }) => {
             style={{ transform: [{ rotate: rotateDeg }] }} // Apply rotation to the arrow
           >
             <MaterialIcons
-              name="keyboard-arrow-down"
+              name='keyboard-arrow-down'
               size={24}
-              color="#34495E"
+              color='#34495E'
             />
           </Animated.View>
         </TouchableOpacity>
@@ -691,8 +687,6 @@ const style2 = StyleSheet.create({
 });
 // ---------------explore company ends--------------------//
 
-
-
 // -----------------chatbot starts
 const sendMessageToBackend = async (message, mynumber) => {
   try {
@@ -734,7 +728,7 @@ const sendMessageToBackend = async (message, mynumber) => {
           Apikey: "Api-Key 7oPWx7TV.NNqgjamVW8T7rI5AGlQZWPNsjY2ZEOJS",
         },
         body: JSON.stringify({
-          payload: enrichedMessage ,
+          payload: enrichedMessage,
         }),
       }
     );
@@ -916,10 +910,10 @@ const ShareDashboard = ({ route }) => {
   const [activeSection, setActiveSection] = useState("MyPortfolio");
   const [payload, setPayload] = useState(null); // State to hold the payloa
 
-    const handleSendPayload = (company_name, ticker) => {
-      setPayload({ company_name, ticker }); // Update payload
-      setActiveSection("ChatBot"); // Switch to ChatBot section
-    };
+  const handleSendPayload = (company_name, ticker) => {
+    setPayload({ company_name, ticker }); // Update payload
+    setActiveSection("ChatBot"); // Switch to ChatBot section
+  };
 
   const renderSection = () => {
     switch (activeSection) {
@@ -932,7 +926,7 @@ const ShareDashboard = ({ route }) => {
           />
         );
       case "ChatBot":
-        return <ChatBot payload={payload} mynumber={mynumber}/>;
+        return <ChatBot payload={payload} mynumber={mynumber} />;
       default:
         return null;
     }

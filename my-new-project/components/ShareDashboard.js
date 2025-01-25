@@ -32,7 +32,7 @@ const MyPortfolio = ({ mynumber }) => {
     const fetchPortfolio = async () => {
       try {
         const response = await fetch(
-          "https://finfusion-v2.onrender.com/portffolio",
+          "https://finfusion-v2.onrender.com/portfolio",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -69,11 +69,18 @@ const MyPortfolio = ({ mynumber }) => {
     setSelectedPeriod(period);
   };
 
-  const handleTransaction = async (type, stockSymbol, companyName, quantity, pricePerShare) => {
+  const handleTransaction = async (
+    type,
+    stockSymbol,
+    companyName,
+    quantity,
+    pricePerShare
+  ) => {
     const endpoint = type === "buy" ? "/buy_stock" : "/sell_stock";
 
     try {
-      const response = await fetch(`https://finfusion-v2.onrender.com${endpoint}`,
+      const response = await fetch(
+        `https://finfusion-v2.onrender.com${endpoint}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -89,16 +96,20 @@ const MyPortfolio = ({ mynumber }) => {
 
       const data = await response.json();
       if (response.ok) {
-        Alert.alert("Success", `${type === "buy" ? "Bought" : "Sold"} successfully.`);
+        Alert.alert(
+          "Success",
+          `${type === "buy" ? "Bought" : "Sold"} successfully.`
+        );
         // Optionally, refresh the portfolio after the transaction
         setPortfolio((prevPortfolio) =>
           prevPortfolio.map((item) =>
             item.Symbol === stockSymbol
               ? {
                   ...item,
-                  "Total Price": type === "buy"
-                    ? item["Total Price"] + quantity * pricePerShare
-                    : item["Total Price"] - quantity * pricePerShare,
+                  "Total Price":
+                    type === "buy"
+                      ? item["Total Price"] + quantity * pricePerShare
+                      : item["Total Price"] - quantity * pricePerShare,
                 }
               : item
           )
@@ -111,27 +122,85 @@ const MyPortfolio = ({ mynumber }) => {
     }
   };
 
+  // Function to reduce the number of data points for better visibility
+  const reduceDataPoints = (data, skip = 5) => {
+    return data.filter((_, index) => index % skip === 0);
+  };
+
   const renderPortfolioItem = ({ item }) => {
     const isExpanded = expanded[item.Symbol];
+
+    // Prepare chart data based on selected period
+    let graphData = { labels: [], datasets: [] };
+
+    const formatDate = (dateStr) => {
+      const date = new Date(dateStr);
+      return date.getDate(); // Extract day, week, or month depending on the period
+    };
+
+    if (selectedPeriod === "day") {
+      const reducedDailyData = reduceDataPoints(item.ShowMore.Graph.Daily, 5); // Skip 5 data points
+      graphData = {
+        labels: reducedDailyData.map((entry) => formatDate(entry.Time)),
+        datasets: [
+          {
+            data: reducedDailyData.map((entry) => entry.Price),
+            color: (opacity = 1) => `rgba(169, 169, 169, ${opacity})`,
+            strokeWidth: 2,
+          },
+        ],
+      };
+    } else if (selectedPeriod === "week") {
+      const reducedWeeklyData = reduceDataPoints(item.ShowMore.Graph.Weekly, 2); // Skip 2 data points
+      graphData = {
+        labels: reducedWeeklyData.map((_, index) => `${index + 1}`), // Use index + 1 as label
+        datasets: [
+          {
+            data: reducedWeeklyData.map((entry) => entry.Price),
+            color: (opacity = 1) => `rgba(169, 169, 169, ${opacity})`,
+            strokeWidth: 2,
+          },
+        ],
+      };
+    } else if (selectedPeriod === "month") {
+      const reducedMonthlyData = reduceDataPoints(
+        item.ShowMore.Graph.Monthly,
+        3
+      ); // Skip 3 data points
+      graphData = {
+        labels: reducedMonthlyData.map((entry) => formatDate(entry.Time)),
+        datasets: [
+          {
+            data: reducedMonthlyData.map((entry) => entry.Price),
+            color: (opacity = 1) => `rgba(169, 169, 169, ${opacity})`,
+            strokeWidth: 2,
+          },
+        ],
+      };
+    }
 
     return (
       <Animated.View style={[style1.card, { opacity: fadeAnim }]}>
         <View style={style1.header}>
-          <Ionicons name="business" size={24} color="black" />
+          <Ionicons name='business' size={24} color='black' />
           <Text style={style1.companyName}>{item.Name}</Text>
         </View>
         <View style={style1.details}>
           <Text style={style1.text}>
-            Total Value: <Text style={style1.textBold}>{item["Total Price"]}</Text>
+            Total Value:{" "}
+            <Text style={style1.textBold}>{item["Total Price"]}</Text>
           </Text>
           <Text style={style1.text}>
-            Price Per Share: <Text style={style1.textBold}>{item["Price Per Share"]}</Text>
+            Price Per Share:{" "}
+            <Text style={style1.textBold}>{item["Price Per Share"]}</Text>
           </Text>
           <Text style={style1.text}>
-            Shares: <Text style={style1.textBold}>{item["Number of Shares"]}</Text>
+            Shares:{" "}
+            <Text style={style1.textBold}>{item["Number of Shares"]}</Text>
           </Text>
           <Text style={style1.text}>
-            Market Sentiment: <Text style={style1.textBold}>{item["Market Sentiment"]}</Text>
+            Market Sentiment:{" "}
+            <Text style={style1.textBold}>{item["Market Sentiment"]}</Text>
           </Text>
         </View>
 
@@ -147,18 +216,96 @@ const MyPortfolio = ({ mynumber }) => {
         {isExpanded && (
           <View style={style1.extraInfo}>
             <Text style={style1.extraHeader}>Additional Information:</Text>
-            <Text style={style1.text}>Last Refreshed: {item["Last Refreshed"]}</Text>
+            <Text style={style1.text}>
+              Last Refreshed: {item["Last Refreshed"]}
+            </Text>
             <Text style={style1.text}>Time Zone: {item["Time Zone"]}</Text>
+            <Text style={style1.text}>
+              Additional Info: {item["Text Info"]}
+            </Text>
+
+            <View style={style1.periodButtons}>
+              <TouchableOpacity
+                onPress={() => handlePeriodChange("day")}
+                style={style1.periodButton}
+              >
+                <Text style={style1.periodButtonText}>Day</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handlePeriodChange("week")}
+                style={style1.periodButton}
+              >
+                <Text style={style1.periodButtonText}>Week</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handlePeriodChange("month")}
+                style={style1.periodButton}
+              >
+                <Text style={style1.periodButtonText}>Month</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={style1.text}>Stock Price Over Time:</Text>
+            <LineChart
+              data={graphData}
+              width={300}
+              height={200}
+              chartConfig={{
+                backgroundColor: "#FFFFFF",
+                backgroundGradientFrom: "#FFFFFF",
+                backgroundGradientTo: "#FFFFFF",
+                decimalPlaces: 2,
+                color: (opacity = 1) => `rgba(169, 169, 169, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                style: {
+                  borderRadius: 16,
+                },
+                propsForLabels: {
+                  fontSize: 10,
+                  fontWeight: "bold",
+                },
+                propsForDots: {
+                  r: "4",
+                  strokeWidth: "2",
+                  stroke: "#ffa726",
+                },
+              }}
+              bezier
+              withDots={true}
+              withInnerLines={true}
+              withOuterLines={true}
+              withVerticalLabels={true}
+              withHorizontalLabels={true}
+              fromZero={false}
+              segments={5}
+            />
+
             <View style={style1.buttonContainer}>
               <TouchableOpacity
                 style={style1.buyButton}
-                onPress={() => handleTransaction("buy", item.Symbol, item.Name, 1, item["Price Per Share"])}
+                onPress={() =>
+                  handleTransaction(
+                    "buy",
+                    item.Symbol,
+                    item.Name,
+                    1,
+                    item["Price Per Share"]
+                  )
+                }
               >
                 <Text style={style1.buttonText}>Buy</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={style1.sellButton}
-                onPress={() => handleTransaction("sell", item.Symbol, item.Name, 1, item["Price Per Share"])}
+                onPress={() =>
+                  handleTransaction(
+                    "sell",
+                    item.Symbol,
+                    item.Name,
+                    1,
+                    item["Price Per Share"]
+                  )
+                }
               >
                 <Text style={style1.buttonText}>Sell</Text>
               </TouchableOpacity>
@@ -265,6 +412,23 @@ const style1 = StyleSheet.create({
     marginBottom: 10,
     color: "#333",
   },
+  periodButtons: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 10,
+    marginBottom: 15,
+  },
+  periodButton: {
+    backgroundColor: "#D3D3D3",
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    marginHorizontal: 5,
+    borderRadius: 10,
+  },
+  periodButtonText: {
+    color: "#333",
+    fontWeight: "bold",
+  },
   buttonContainer: {
     flexDirection: "row",
     marginTop: 15,
@@ -287,6 +451,7 @@ const style1 = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+
 //-------------------------My Portfolio ends ----------------------//
 
 // --------------------Explore Companies start----------------------//

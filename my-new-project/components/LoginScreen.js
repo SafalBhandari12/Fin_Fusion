@@ -284,12 +284,13 @@ const LoginScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    resizeMode: "cover", // Ensure the image covers the entire screen
+  },
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
-    justifyContent: "center",
   },
   inner: {
     paddingHorizontal: 20,
@@ -301,70 +302,75 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   logo: {
-    fontSize: 60,
+    fontSize: 100, // Larger size for the logo
     fontWeight: "bold",
-    color: "#0078FF",
+    color: "#1D4ED8", // Blue color for the logo
+    textShadowColor: "rgba(29, 78, 216, 0.3)", // Add a subtle shadow
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 10,
+    transform: [{ rotate: "-10deg" }], // Slight rotation for a modern look
   },
   appName: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#555",
-    marginTop: 5,
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#1D4ED8", // Blue color for the app name
+    marginTop: 10,
+    letterSpacing: 1.5, // Add spacing between letters for a sleek look
   },
   formContainer: {
-    backgroundColor: "#ffffff",
-    borderRadius: 8,
-    padding: 20,
+    backgroundColor: "#FFFFFF", // White background
+    borderRadius: 12,
+    padding: 24,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowRadius: 8,
+    elevation: 6,
   },
   inputContainer: {
     marginBottom: 20,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#333",
-    marginBottom: 5,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333333", // Darker label color
+    marginBottom: 8,
   },
   input: {
-    height: 40,
+    height: 50,
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    fontSize: 14,
-    color: "#333",
-    backgroundColor: "#f9f9f9",
+    borderColor: "#B6C8E8", // Light blue border color
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: "#333333", // Darker text color
+    backgroundColor: "#F8FAFC", // Light blue background for input
   },
   loginButton: {
-    backgroundColor: "#0078FF",
-    paddingVertical: 10,
-    borderRadius: 5,
+    backgroundColor: "#1D4ED8", // Blue background for the button
+    paddingVertical: 14,
+    borderRadius: 8,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 20,
   },
   loginButtonText: {
-    color: "#ffffff",
-    fontWeight: "600",
-    fontSize: 16,
+    color: "#FFFFFF", // White text for the button
+    fontWeight: "700",
+    fontSize: 18,
   },
   footer: {
     marginTop: 20,
     alignItems: "center",
   },
   footerText: {
-    fontSize: 14,
-    color: "#555",
+    fontSize: 16,
+    color: "#555555", // Darker text color
   },
   signupText: {
-    fontSize: 14,
-    color: "#0078FF",
-    fontWeight: "600",
-    marginTop: 5,
+    fontSize: 16,
+    color: "#1D4ED8", // Blue color for the sign-up text
+    fontWeight: "700",
+    marginTop: 10,
   },
 });
 

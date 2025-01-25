@@ -8,8 +8,11 @@ import {
   FlatList,
   Animated,
   Easing,
-  TestInput,
-  ActivityIndicator
+  TextInput,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Button,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LineChart } from "react-native-chart-kit";
@@ -372,7 +375,7 @@ const style1 = StyleSheet.create({
 //-------------------------My Portfolio ends ----------------------//
 
 // --------------------Explore Companies start----------------------//
-const ExploreCompanies = () => {
+const ExploreCompanies = ({ onSendPayload }) => {
   const [categories, setCategories] = useState([]);
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -411,6 +414,15 @@ const ExploreCompanies = () => {
         {item.ticker_symbol}
       </Text>
       <Text style={style2.companyInfo}>{item.information}</Text>
+      {/* Add Chat Button */}
+      <TouchableOpacity
+        style={style2.chatButton}
+        onPress={() =>
+          onSendPayload(item.company_name, item.ticker_symbol)
+        }
+      >
+        <Text style={style2.chatButtonText}>Chat</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -454,9 +466,9 @@ const ExploreCompanies = () => {
             style={{ transform: [{ rotate: rotateDeg }] }} // Apply rotation to the arrow
           >
             <MaterialIcons
-              name='keyboard-arrow-down'
+              name="keyboard-arrow-down"
               size={24}
-              color='#34495E'
+              color="#34495E"
             />
           </Animated.View>
         </TouchableOpacity>
@@ -557,16 +569,99 @@ const style2 = StyleSheet.create({
     textAlign: "center",
     marginTop: 20,
   },
+  chatButton: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: "#3498DB", // Blue color
+    borderRadius: 5,
+    alignSelf: "flex-start",
+  },
+  chatButtonText: {
+    color: "#FFFFFF", // White text
+    fontWeight: "bold",
+  },
 });
 // ---------------explore company ends--------------------//
 
 
 
 // -----------------chatbot starts
-const ChatBot = () => {
+
+const sendMessageToBackend = async (message) => {
+  try {
+    const response = await fetch(
+      `https://payload.vextapp.com/hook/QTC6XOCPXP/catch/1`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Apikey: "Api-Key Amf3m7Z6.8B0H3uvB404FmpDHLjRXyNu5pO2LZ0Oy",
+        },
+        body: JSON.stringify({
+          payload: message,
+        }),
+      }
+    );
+    const data = await response.json();
+    return data.text;
+  } catch (error) {
+    console.error("Error sending message:", error);
+    return "Sorry, there was an error processing your request.";
+  }
+};
+
+const ChatBot = ({ payload }) => {
   const [messages, setMessages] = useState([
-    { id: "1", text: "Hello, how can I help you?", sender: "bot" },
+    { id: "1", text: "Hello, how can I assist you today?", sender: "bot" },
   ]);
+  const [userInput, setUserInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (payload && payload.company_name) {
+      const userMessage = `Give me detail about ${payload.company_name}`;
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { id: "2", text: userMessage, sender: "user" },
+      ]);
+      sendInitialMessage(userMessage);
+    }
+  }, [payload]);
+
+  const sendInitialMessage = async (initialMessage) => {
+    setIsLoading(true);
+    const botResponse = await sendMessageToBackend(initialMessage);
+    setIsLoading(false);
+
+    const botMessage = {
+      id: "3",
+      text: botResponse,
+      sender: "bot",
+    };
+    setMessages((prevMessages) => [...prevMessages, botMessage]);
+  };
+
+  const handleUserMessage = async () => {
+    if (!userInput.trim()) return;
+
+    const newMessages = [
+      ...messages,
+      { id: `${messages.length + 1}`, text: userInput, sender: "user" },
+    ];
+    setMessages(newMessages);
+    setUserInput("");
+    setIsLoading(true);
+
+    const botResponse = await sendMessageToBackend(userInput);
+    setIsLoading(false);
+
+    const botMessage = {
+      id: `${messages.length + 2}`,
+      text: botResponse,
+      sender: "bot",
+    };
+    setMessages((prevMessages) => [...prevMessages, botMessage]);
+  };
 
   const renderMessage = ({ item }) => (
     <View
@@ -586,7 +681,23 @@ const ChatBot = () => {
         renderItem={renderMessage}
         keyExtractor={(item) => item.id}
         style={style.messageList}
+        contentContainerStyle={{ paddingBottom: 100 }}
       />
+
+      {isLoading && (
+        <Text style={style.processingText}>Processing your request...</Text>
+      )}
+
+      <View style={style.inputContainer}>
+        <TextInput
+          value={userInput}
+          onChangeText={setUserInput}
+          style={style.input}
+          placeholder='Type your message...'
+          placeholderTextColor='#6C757D'
+        />
+        <Button title='Send' onPress={handleUserMessage} color='#D1D3D4' />
+      </View>
     </View>
   );
 };
@@ -594,28 +705,65 @@ const ChatBot = () => {
 const style = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F7F7F7",
+    justifyContent: "space-between",
   },
   messageList: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   messageContainer: {
     maxWidth: "80%",
-    padding: 12,
-    borderRadius: 12,
-    marginVertical: 8,
+    padding: 16,
+    borderRadius: 20,
+    marginVertical: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   userMessage: {
     alignSelf: "flex-end",
     backgroundColor: "#007BFF",
+    borderBottomLeftRadius: 0,
   },
   botMessage: {
     alignSelf: "flex-start",
-    backgroundColor: "#F1F0F5",
+    backgroundColor: "#D1D3D4",
+    borderBottomRightRadius: 0,
   },
   messageText: {
     color: "#333333",
+    fontSize: 16,
+    lineHeight: 24,
+    fontFamily: "Helvetica Neue",
+  },
+  inputContainer: {
+    flexDirection: "row",
+    padding: 12,
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderColor: "#ddd",
+    backgroundColor: "#fff",
+  },
+  input: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    marginRight: 10,
+    fontSize: 16,
+    fontFamily: "Helvetica Neue",
+    backgroundColor: "#F1F1F1",
+  },
+  processingText: {
+    alignSelf: "flex-end",
+    marginHorizontal: 20,
+    marginBottom: 10,
+    fontSize: 16,
+    color: "#6C757D",
   },
 });
 // ------------------------Chatbot ends-------------//
@@ -623,15 +771,25 @@ const style = StyleSheet.create({
 const ShareDashboard = ({ route }) => {
   const { name, mynumber } = route.params;
   const [activeSection, setActiveSection] = useState("MyPortfolio");
+  const [payload, setPayload] = useState(null); // State to hold the payloa
+
+    const handleSendPayload = (company_name, ticker) => {
+      setPayload({ company_name, ticker }); // Update payload
+      setActiveSection("ChatBot"); // Switch to ChatBot section
+    };
 
   const renderSection = () => {
     switch (activeSection) {
       case "MyPortfolio":
         return <MyPortfolio mynumber={mynumber} />;
       case "ExploreCompanies":
-        return <ExploreCompanies />;
+        return (
+          <ExploreCompanies
+            onSendPayload={handleSendPayload} // Pass the handler to ExploreCompanies
+          />
+        );
       case "ChatBot":
-        return <ChatBot />;
+        return <ChatBot payload={payload}/>;
       default:
         return null;
     }

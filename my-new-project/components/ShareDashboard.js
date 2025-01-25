@@ -586,16 +586,15 @@ const style2 = StyleSheet.create({
 
 
 // -----------------chatbot starts
-
 const sendMessageToBackend = async (message) => {
   try {
     const response = await fetch(
-      `https://payload.vextapp.com/hook/QTC6XOCPXP/catch/1`,
+      `https://payload.vextapp.com/hook/HGIJ6CJBFG/catch/1`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Apikey: "Api-Key Amf3m7Z6.8B0H3uvB404FmpDHLjRXyNu5pO2LZ0Oy",
+          Apikey: "Api-Key 7oPWx7TV.NNqgjamVW8T7rI5AGlQZWPNsjY2ZEOJS",
         },
         body: JSON.stringify({
           payload: message,
@@ -603,6 +602,7 @@ const sendMessageToBackend = async (message) => {
       }
     );
     const data = await response.json();
+    console.log(data);
     return data.text;
   } catch (error) {
     console.error("Error sending message:", error);

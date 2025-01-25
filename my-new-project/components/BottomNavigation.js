@@ -34,9 +34,9 @@ const BottomNavigation = ({ route }) => {
       case "Shares":
         return <ShareDashboard route={{ params: { name, balance,mynumber } }} />;
       case "FinFusion":
-        return <FinFusionDashboard route={{ params: { name, balance } }} />;
+        return <FinFusionDashboard route={{ params: { name, balance,mynumber } }} />;
       default:
-        return <PaymentDashboard route={{ params: { name, balance } }} />;
+        return <PaymentDashboard route={{ params: { name, balance,mynumber } }} />;
     }
   };
 

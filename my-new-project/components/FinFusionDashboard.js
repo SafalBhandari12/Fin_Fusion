@@ -9,6 +9,7 @@ import {
   TextInput,
   Button,
   KeyboardAvoidingView,
+  ActivityIndicator,
 } from "react-native";
 import { PieChart, BarChart } from "react-native-chart-kit";
 
@@ -22,17 +23,16 @@ const FinFusionDashboard = ({ route }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log(mynumber);
-      const response = await fetch(
-        "https://finfusion-v2.onrender.com/financial-summary",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ mobile_number: String(mynumber) }),
-        }
-      );
+        const response = await fetch(
+          "https://finfusion-v2.onrender.com/financial-summary",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ mobile_number: String(mynumber) }),
+          }
+        );
         const result = await response.json();
         console.log(result);
         setData(result);
@@ -66,7 +66,7 @@ const FinFusionDashboard = ({ route }) => {
           <Insights data={data} onChatButtonClick={handleChatButtonClick} />
         );
       case "chatbot":
-        return <Chatbot data={chatData || data} />;
+        return <Chatbot data={chatData || data} mynumber={mynumber} />;
       default:
         return null;
     }
@@ -345,7 +345,7 @@ const style2 = StyleSheet.create({
 //----------------------Insights components ends------------------------//
 
 // --------------------- Chatbot component starts ----------------------//
-const Chatbot = ({ data }) => {
+const Chatbot = ({ data, mynumber }) => {
   const [messages, setMessages] = useState([
     { id: "1", text: "Chatbot: How can I assist you today?", sender: "bot" },
   ]);
@@ -354,14 +354,14 @@ const Chatbot = ({ data }) => {
 
   useEffect(() => {
     if (data) {
-      const userMessage = `Give me details about my savings and expenses`;
       setMessages((prevMessages) => [
         ...prevMessages,
-        { id: "2", text: userMessage, sender: "user" },
+        { id: "2", text: "Insights on your finance", sender: "user" },
       ]);
-      sendInitialMessage(userMessage);
+      sendInitialMessage(JSON.stringify(data));
     }
-  }, [data]);
+    fetchAndProcessTransactions(mynumber);
+  }, [data, mynumber]);
 
   const sendInitialMessage = async (initialMessage) => {
     setIsLoading(true);
@@ -370,10 +370,83 @@ const Chatbot = ({ data }) => {
 
     const botMessage = {
       id: "3",
-      text: botResponse,
+      text: formatBotResponse(botResponse),
       sender: "bot",
     };
     setMessages((prevMessages) => [...prevMessages, botMessage]);
+  };
+
+  const fetchAndProcessTransactions = async (mynumber) => {
+    try {
+      const response = await fetch(
+        "https://finfusion-v2.onrender.com/transaction-history",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ mynumber }),
+        }
+      );
+      const data = await response.json();
+      if (data.transactions) {
+        const formattedTransactions = data.transactions.map((transaction) => {
+          return `Transaction ID: ${transaction.transaction_id}\nDate: ${new Date(
+            transaction.date
+          ).toLocaleString()}\nAmount: $${transaction.amount}\nCategory: ${transaction.category}\nType: ${transaction.type || "Unknown"}`;
+        });
+
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          ...formattedTransactions.map((text, index) => ({
+            id: `${prevMessages.length + index + 1}`,
+            text,
+            sender: "bot",
+          })),
+        ]);
+      }
+    } catch (error) {
+      console.error("Error fetching transaction history:", error);
+    }
+  };
+
+  const sendMessageToBackend = async (message) => {
+    try {
+      const response = await fetch(
+        "https://payload.vextapp.com/hook/I38ZO7CQAA/catch/1",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Apikey: "Api-Key EUzU77jg.J37swANRkCpg0UYFloO3PsYG9dp2goFu",
+          },
+          body: JSON.stringify({
+            payload: message,
+          }),
+        }
+      );
+      const data = await response.json();
+      return data.text || "Sorry, I couldn't understand that.";
+    } catch (error) {
+      console.error("Error sending message to backend:", error);
+      return "Sorry, there was an error processing your request.";
+    }
+  };
+
+  const formatBotResponse = (response) => {
+    return response
+      .split("\n")
+      .map((line) => {
+        if (line.startsWith("**") && line.endsWith("**")) {
+          return `\u2022 ${line.replace(/\*\*/g, "").trim()}`;
+        }
+        if (line.startsWith("- ")) {
+          return `\u2022 ${line.substring(2).trim()}`;
+        }
+        return line.trim();
+      })
+      .filter((line) => line.length > 0)
+      .join("\n");
   };
 
   const handleUserMessage = async () => {
@@ -392,7 +465,7 @@ const Chatbot = ({ data }) => {
 
     const botMessage = {
       id: `${messages.length + 2}`,
-      text: botResponse,
+      text: formatBotResponse(botResponse),
       sender: "bot",
     };
     setMessages((prevMessages) => [...prevMessages, botMessage]);
@@ -428,10 +501,10 @@ const Chatbot = ({ data }) => {
           value={userInput}
           onChangeText={setUserInput}
           style={style3.input}
-          placeholder='Type your message...'
-          placeholderTextColor='#6C757D'
+          placeholder="Type your message..."
+          placeholderTextColor="#6C757D"
         />
-        <Button title='Send' onPress={handleUserMessage} color='#D1D3D4' />
+        <Button title="Send" onPress={handleUserMessage} color="#007BFF" />
       </View>
     </View>
   );
@@ -501,6 +574,7 @@ const style3 = StyleSheet.create({
     color: "#6C757D",
   },
 });
+
 
 // Chart Configuration (unchanged)
 const chartConfig = {

@@ -32,7 +32,7 @@ const MyPortfolio = ({ mynumber }) => {
     const fetchPortfolio = async () => {
       try {
         const response = await fetch(
-          "https://finfusion-v2.onrender.com/portfolio",
+          "https://finfusion-v2.onrender.com/portffolio",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -529,8 +529,37 @@ const style2 = StyleSheet.create({
 
 
 // -----------------chatbot starts
-const sendMessageToBackend = async (message) => {
+const sendMessageToBackend = async (message, mynumber) => {
   try {
+    // Step 1: Fetch financial summary data
+    const financialSummaryResponse = await fetch(
+      "https://finfusion-v2.onrender.com/financial-summary",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ mobile_number: String(mynumber) }),
+      }
+    );
+
+    if (!financialSummaryResponse.ok) {
+      console.error(
+        "Failed to fetch financial summary data",
+        financialSummaryResponse.status
+      );
+      throw new Error("Failed to fetch financial summary data");
+    }
+
+    const financialSummaryData = await financialSummaryResponse.json();
+    console.log("Financial Summary Data:", financialSummaryData);
+
+    // Append financial summary to the message for the first query
+    const enrichedMessage = `${message}\n\nFinancial Summary:\n${JSON.stringify(
+      financialSummaryData
+    )}`;
+
+    // Step 2: Send the financial summary data along with the message to the Vext API endpoint
     const response = await fetch(
       `https://payload.vextapp.com/hook/HGIJ6CJBFG/catch/1`,
       {
@@ -540,12 +569,17 @@ const sendMessageToBackend = async (message) => {
           Apikey: "Api-Key 7oPWx7TV.NNqgjamVW8T7rI5AGlQZWPNsjY2ZEOJS",
         },
         body: JSON.stringify({
-          payload: message,
+          payload: enrichedMessage ,
         }),
       }
     );
+
+    if (!response.ok) {
+      console.error("Failed to send message to Vext API", response.status);
+      throw new Error("Failed to send message to Vext API");
+    }
+
     const data = await response.json();
-    console.log(data);
     return data.text;
   } catch (error) {
     console.error("Error sending message:", error);
@@ -553,7 +587,7 @@ const sendMessageToBackend = async (message) => {
   }
 };
 
-const ChatBot = ({ payload }) => {
+const ChatBot = ({ payload, mynumber }) => {
   const [messages, setMessages] = useState([
     { id: "1", text: "Hello, how can I assist you today?", sender: "bot" },
   ]);
@@ -563,6 +597,7 @@ const ChatBot = ({ payload }) => {
   useEffect(() => {
     if (payload && payload.company_name) {
       const userMessage = `Give me detail about ${payload.company_name}`;
+
       setMessages((prevMessages) => [
         ...prevMessages,
         { id: "2", text: userMessage, sender: "user" },
@@ -573,7 +608,7 @@ const ChatBot = ({ payload }) => {
 
   const sendInitialMessage = async (initialMessage) => {
     setIsLoading(true);
-    const botResponse = await sendMessageToBackend(initialMessage);
+    const botResponse = await sendMessageToBackend(initialMessage, mynumber);
     setIsLoading(false);
 
     const botMessage = {
@@ -595,7 +630,7 @@ const ChatBot = ({ payload }) => {
     setUserInput("");
     setIsLoading(true);
 
-    const botResponse = await sendMessageToBackend(userInput);
+    const botResponse = await sendMessageToBackend(userInput, mynumber);
     setIsLoading(false);
 
     const botMessage = {
@@ -732,7 +767,7 @@ const ShareDashboard = ({ route }) => {
           />
         );
       case "ChatBot":
-        return <ChatBot payload={payload}/>;
+        return <ChatBot payload={payload} mynumber={mynumber}/>;
       default:
         return null;
     }

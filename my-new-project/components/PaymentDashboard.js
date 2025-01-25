@@ -11,6 +11,7 @@ import {
   Alert,
   Animated,
   Easing,
+  RefreshControl,
 } from "react-native";
 
 const PaymentDashboard = ({ route }) => {
@@ -27,6 +28,7 @@ const PaymentDashboard = ({ route }) => {
   const [category, setCategory] = useState(""); // Default category
   const [balance, setBalance] = useState(initialBalance);
   const [showBalance, setShowBalance] = useState(false);
+  const [refreshing, setRefreshing] = useState(false); // New state for refresh control
 
   // Animations
   const balanceAnimation = useRef(new Animated.Value(0)).current;
@@ -97,7 +99,7 @@ const PaymentDashboard = ({ route }) => {
       if (response.ok) {
         Alert.alert(
           "Success",
-          `₹${amount} sent successfully to ${selectedContact.name}. Transaction ID: ${data.transaction_id}`
+          `₹${amount} sent successfully to ${selectedContact.name}.`
         );
 
         // Update balance with animation
@@ -227,9 +229,30 @@ const PaymentDashboard = ({ route }) => {
     );
   };
 
+  const onRefresh = () => {
+    setRefreshing(true);
+
+    // Reset all states
+    setSelectedContact(null);
+    setMpin("");
+    setAmount("");
+    setCategory("");
+    setBalance(initialBalance);
+    setShowBalance(false);
+
+    // Simulate a network request or any async operation
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
   return (
     <SafeAreaView style={styles.dashboardContainer}>
-      <ScrollView>
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Redesigned Header */}
         <Animated.View
           style={[

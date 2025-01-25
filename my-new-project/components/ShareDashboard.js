@@ -41,7 +41,6 @@ const MyPortfolio = ({ mynumber }) => {
         );
 
         const data = await response.json();
-        console.log(data);
         setPortfolio(data.portfolio || []);
         setLoading(false);
 
@@ -52,6 +51,7 @@ const MyPortfolio = ({ mynumber }) => {
         }).start();
       } catch (error) {
         setLoading(false);
+        Alert.alert("Error", "Failed to fetch portfolio.");
       }
     };
 
@@ -65,95 +65,73 @@ const MyPortfolio = ({ mynumber }) => {
     }));
   };
 
-  const handlePeriodChange = (period, symbol) => {
+  const handlePeriodChange = (period) => {
     setSelectedPeriod(period);
+  };
+
+  const handleTransaction = async (type, stockSymbol, companyName, quantity, pricePerShare) => {
+    const endpoint = type === "buy" ? "/buy_stock" : "/sell_stock";
+
+    try {
+      const response = await fetch(`https://finfusion-v2.onrender.com${endpoint}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mobile_number: mynumber,
+            stock_symbol: stockSymbol,
+            company_name: companyName,
+            quantity,
+            price_per_share: pricePerShare,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (response.ok) {
+        Alert.alert("Success", `${type === "buy" ? "Bought" : "Sold"} successfully.`);
+        // Optionally, refresh the portfolio after the transaction
+        setPortfolio((prevPortfolio) =>
+          prevPortfolio.map((item) =>
+            item.Symbol === stockSymbol
+              ? {
+                  ...item,
+                  "Total Price": type === "buy"
+                    ? item["Total Price"] + quantity * pricePerShare
+                    : item["Total Price"] - quantity * pricePerShare,
+                }
+              : item
+          )
+        );
+      } else {
+        Alert.alert("Error", data.message || "Transaction failed.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Something went wrong. Please try again.");
+    }
   };
 
   const renderPortfolioItem = ({ item }) => {
     const isExpanded = expanded[item.Symbol];
 
-    // Prepare chart data based on selected period
-    let graphData = { labels: [], datasets: [] };
-
-    const formatDate = (dateStr) => {
-      const date = new Date(dateStr);
-      return date.getDate(); // Extract day, week, or month depending on the period
-    };
-
-    if (selectedPeriod === "day") {
-      graphData = {
-        labels: item.ShowMore.Graph.Daily.map((entry) =>
-          formatDate(entry.Time)
-        ),
-        datasets: [
-          {
-            data: item.ShowMore.Graph.Daily.map((entry) => entry.Price),
-            color: (opacity = 1) => `rgba(169, 169, 169, ${opacity})`,
-            strokeWidth: 2,
-          },
-        ],
-      };
-    } else if (selectedPeriod === "week") {
-      graphData = {
-        labels: item.ShowMore.Graph.Weekly.map(
-          (entry, index) => `Week ${index + 1}`
-        ),
-        datasets: [
-          {
-            data: item.ShowMore.Graph.Weekly.map((entry) => entry.Price),
-            color: (opacity = 1) => `rgba(169, 169, 169, ${opacity})`,
-            strokeWidth: 2,
-          },
-        ],
-      };
-    } else if (selectedPeriod === "month") {
-      graphData = {
-        labels: item.ShowMore.Graph.Monthly.map((entry) =>
-          formatDate(entry.Time)
-        ),
-        datasets: [
-          {
-            data: item.ShowMore.Graph.Monthly.map((entry) => entry.Price),
-            color: (opacity = 1) => `rgba(169, 169, 169, ${opacity})`,
-            strokeWidth: 2,
-          },
-        ],
-      };
-    }
-
     return (
       <Animated.View style={[style1.card, { opacity: fadeAnim }]}>
         <View style={style1.header}>
-          <Ionicons name='business' size={24} color='black' />
-          {loading ? (
-            <Animated.Text
-              style={[
-                style1.companyName,
-                { opacity: fadeAnim, transform: [{ translateY: fadeAnim }] },
-              ]}
-            >
-              Loading...
-            </Animated.Text>
-          ) : (
-            <Text style={style1.companyName}>{item.Name}</Text>
-          )}
+          <Ionicons name="business" size={24} color="black" />
+          <Text style={style1.companyName}>{item.Name}</Text>
         </View>
         <View style={style1.details}>
           <Text style={style1.text}>
-            Total Value:{" "}
-            <Text style={style1.textBold}>{item["Total Price"]}</Text>
+            Total Value: <Text style={style1.textBold}>{item["Total Price"]}</Text>
           </Text>
           <Text style={style1.text}>
-            Price Per Share:{" "}
-            <Text style={style1.textBold}>{item["Price Per Share"]}</Text>
+            Price Per Share: <Text style={style1.textBold}>{item["Price Per Share"]}</Text>
           </Text>
           <Text style={style1.text}>
-            Shares:{" "}
-            <Text style={style1.textBold}>{item["Number of Shares"]}</Text>
+            Shares: <Text style={style1.textBold}>{item["Number of Shares"]}</Text>
           </Text>
           <Text style={style1.text}>
-            Market Sentiment:{" "}
-            <Text style={style1.textBold}>{item["Market Sentiment"]}</Text>
+            Market Sentiment: <Text style={style1.textBold}>{item["Market Sentiment"]}</Text>
           </Text>
         </View>
 
@@ -169,64 +147,19 @@ const MyPortfolio = ({ mynumber }) => {
         {isExpanded && (
           <View style={style1.extraInfo}>
             <Text style={style1.extraHeader}>Additional Information:</Text>
-            <Text style={style1.text}>
-              Last Refreshed:{" "}
-              <Text style={style1.textBold}>{item["Last Refreshed"]}</Text>
-            </Text>
-            <Text style={style1.text}>
-              Time Zone:{" "}
-              <Text style={style1.textBold}>{item["Time Zone"]}</Text>
-            </Text>
-            <Text style={style1.text}>
-              Additional Info:{" "}
-              <Text style={style1.textBold}>{item["Text Info"]}</Text>
-            </Text>
-
-            <View style={style1.periodButtons}>
-              <TouchableOpacity
-                onPress={() => handlePeriodChange("day", item.Symbol)}
-                style={style1.periodButton}
-              >
-                <Text style={style1.periodButtonText}>Day</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handlePeriodChange("week", item.Symbol)}
-                style={style1.periodButton}
-              >
-                <Text style={style1.periodButtonText}>Week</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handlePeriodChange("month", item.Symbol)}
-                style={style1.periodButton}
-              >
-                <Text style={style1.periodButtonText}>Month</Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={style1.text}>Stock Price Over Time:</Text>
-            <LineChart
-              data={graphData}
-              width={300}
-              height={200}
-              chartConfig={{
-                backgroundColor: "#FFFFFF",
-                backgroundGradientFrom: "#FFFFFF",
-                backgroundGradientTo: "#FFFFFF",
-                decimalPlaces: 2,
-                color: (opacity = 1) => `rgba(169, 169, 169, ${opacity})`,
-                style: {
-                  borderRadius: 16,
-                },
-              }}
-              withDots={false}
-              withInnerLines={false}
-            />
-
+            <Text style={style1.text}>Last Refreshed: {item["Last Refreshed"]}</Text>
+            <Text style={style1.text}>Time Zone: {item["Time Zone"]}</Text>
             <View style={style1.buttonContainer}>
-              <TouchableOpacity style={style1.buyButton}>
+              <TouchableOpacity
+                style={style1.buyButton}
+                onPress={() => handleTransaction("buy", item.Symbol, item.Name, 1, item["Price Per Share"])}
+              >
                 <Text style={style1.buttonText}>Buy</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={style1.sellButton}>
+              <TouchableOpacity
+                style={style1.sellButton}
+                onPress={() => handleTransaction("sell", item.Symbol, item.Name, 1, item["Price Per Share"])}
+              >
                 <Text style={style1.buttonText}>Sell</Text>
               </TouchableOpacity>
             </View>
@@ -260,7 +193,6 @@ const style1 = StyleSheet.create({
     backgroundColor: "#F8F8F8",
     padding: 20,
     borderRadius: 20,
-    marginBottom: 122,
   },
   sectionText: {
     fontSize: 26,
@@ -271,23 +203,6 @@ const style1 = StyleSheet.create({
   },
   headerContainer: {
     marginBottom: 20,
-  },
-  periodButtons: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 10,
-    marginBottom: 15,
-  },
-  periodButton: {
-    backgroundColor: "#D3D3D3",
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    marginHorizontal: 5,
-    borderRadius: 10,
-  },
-  periodButtonText: {
-    color: "#333",
-    fontWeight: "bold",
   },
   card: {
     backgroundColor: "#FFFFFF",
@@ -505,80 +420,108 @@ const ExploreCompanies = ({ onSendPayload }) => {
 
 const style2 = StyleSheet.create({
   categoryContainer: {
-    backgroundColor: "#D3D3D3", // Light gray
-    padding: 12, // Reduced padding
-    width: "90%", // Reduced width to make it smaller
-    borderRadius: 10,
-    marginBottom: 12, // Adjusted margin for a smaller container
-    alignSelf: "center", // Centers the container horizontally
+    backgroundColor: "#F7F9FC", // Softer white background
+    padding: 16,
+    width: "90%",
+    borderRadius: 15,
+    marginBottom: 16,
+    alignSelf: "center",
+    shadowColor: "#4A6D7C",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 4,
   },
   categoryButton: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12, // Reduced vertical padding
-    paddingHorizontal: 18, // Reduced horizontal padding
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 10,
   },
   expandedCategory: {
-    backgroundColor: "#D3D3D3", // Gray
+    backgroundColor: "#F0F2F4", // Light greyish color
   },
   sectionText: {
     fontSize: 18,
-    fontWeight: "normal", // Default to normal weight
-    color: "#2C3E50", // Dark gray for text
+    fontWeight: "600",
+    color: "#2C3E50",
   },
   boldText: {
-    fontWeight: "bold", // Make text bold
+    fontWeight: "700",
+    color: "#1A5F7A",
   },
   expandedContainer: {
     overflow: "hidden",
+    marginTop: 8,
   },
   companyContainer: {
-    backgroundColor: "#FBFBFB", // White background
-    padding: 10, // Reduced padding for company container
-    width: "90%", // Reduced width to make it smaller
-    borderRadius: 8,
-    marginBottom: 10, // Adjusted margin for smaller container
-    marginTop: 8, // Reduced margin for smaller container
-    borderWidth: 0.5,
-    borderColor: "#BDC3C7", // Light gray border
-    alignSelf: "center", // Centers the container horizontally
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    width: "90%",
+    borderRadius: 15,
+    marginBottom: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#E6E9EC",
+    alignSelf: "center",
+    shadowColor: "#4A6D7C",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   companyName: {
     fontSize: 16,
-    color: "#2C3E50", // Dark gray
+    color: "#2C3E50",
+    marginBottom: 4,
+    fontWeight: "700",
   },
   tickerSymbol: {
     fontSize: 14,
-    color: "#7F8C8D", // Gray
+    color: "#4A6D7C",
+    marginBottom: 8,
+    backgroundColor: "#F0F2F4", // Light greyish color
+    alignSelf: "flex-start",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   companyInfo: {
     fontSize: 14,
-    color: "#95A5A6", // Light gray
+    color: "#5A6B7D",
+    lineHeight: 20,
   },
   loadingText: {
     fontSize: 18,
-    color: "#7F8C8D", // Gray for loading text
+    color: "#4A6D7C",
     textAlign: "center",
     marginTop: 20,
+    fontWeight: "600",
   },
   errorText: {
     fontSize: 18,
-    color: "#E74C3C", // Red color for errors
+    color: "#D9534F",
     textAlign: "center",
     marginTop: 20,
+    fontWeight: "600",
   },
   chatButton: {
     marginTop: 10,
     padding: 10,
-    backgroundColor: "#3498DB", // Blue color
-    borderRadius: 5,
+    backgroundColor: "#2980B9",
+    borderRadius: 8,
     alignSelf: "flex-start",
+    shadowColor: "#2980B9",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   chatButtonText: {
-    color: "#FFFFFF", // White text
-    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontWeight: "700",
   },
 });
 // ---------------explore company ends--------------------//

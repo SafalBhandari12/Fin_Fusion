@@ -97,7 +97,7 @@ const MyPortfolio = ({ mynumber }) => {
             mobile_number: String(mynumber), // Ensure this matches the backend field name
             stock_symbol: String(stockSymbol), // Ensure this matches the backend field name
             company_name: String(companyName), // Ensure this matches the backend field name
-            quantity: Integer(quantity), // Ensure this is a number
+            quantity: parseInt(quantity), // Ensure this is a number
             price_per_share: parseFloat(pricePerShare), // Ensure this is a number
           }),
         }

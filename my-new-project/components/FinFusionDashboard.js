@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { PieChart, BarChart } from "react-native-chart-kit";
+import Markdown from "react-native-markdown-display";
 
 const FinFusionDashboard = ({ route }) => {
   const { name, mynumber } = route.params;
@@ -391,9 +392,13 @@ const Chatbot = ({ data, mynumber }) => {
       const data = await response.json();
       if (data.transactions) {
         const formattedTransactions = data.transactions.map((transaction) => {
-          return `Transaction ID: ${transaction.transaction_id}\nDate: ${new Date(
-            transaction.date
-          ).toLocaleString()}\nAmount: $${transaction.amount}\nCategory: ${transaction.category}\nType: ${transaction.type || "Unknown"}`;
+          return `Transaction ID: ${
+            transaction.transaction_id
+          }\nDate: ${new Date(transaction.date).toLocaleString()}\nAmount: $${
+            transaction.amount
+          }\nCategory: ${transaction.category}\nType: ${
+            transaction.type || "Unknown"
+          }`;
         });
 
         setMessages((prevMessages) => [
@@ -413,12 +418,12 @@ const Chatbot = ({ data, mynumber }) => {
   const sendMessageToBackend = async (message) => {
     try {
       const response = await fetch(
-        "https://payload.vextapp.com/hook/I38ZO7CQAA/catch/1",
+        "https://payload.vextapp.com/hook/7TIKHGMA78/catch/$1",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Apikey: "Api-Key EUzU77jg.J37swANRkCpg0UYFloO3PsYG9dp2goFu",
+            Apikey: "Api-Key aT4dJjlk.YDPiBxWZID0wsc35lQpjb9rxYzLliaUN",
           },
           body: JSON.stringify({
             payload: message,
@@ -501,10 +506,10 @@ const Chatbot = ({ data, mynumber }) => {
           value={userInput}
           onChangeText={setUserInput}
           style={style3.input}
-          placeholder="Type your message..."
-          placeholderTextColor="#6C757D"
+          placeholder='Type your message...'
+          placeholderTextColor='#6C757D'
         />
-        <Button title="Send" onPress={handleUserMessage} color="#007BFF" />
+        <Button title='Send' onPress={handleUserMessage} color='#007BFF' />
       </View>
     </View>
   );
@@ -554,6 +559,7 @@ const style3 = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: "#ddd",
     backgroundColor: "#fff",
+    marginBottom:-10,
   },
   input: {
     flex: 1,
@@ -574,7 +580,6 @@ const style3 = StyleSheet.create({
     color: "#6C757D",
   },
 });
-
 
 // Chart Configuration (unchanged)
 const chartConfig = {

@@ -19,6 +19,7 @@ import { Feather } from "@expo/vector-icons";
 import { LineChart } from "react-native-chart-kit";
 import { Ionicons } from "@expo/vector-icons";
 import { MaterialIcons } from "@expo/vector-icons"; // Importing MaterialIcons for arrow icon
+import Markdown from "react-native-markdown-display";
 
 // ------------My Portfolio-------------------------//
 const MyPortfolio = ({ mynumber }) => {
@@ -96,7 +97,7 @@ const MyPortfolio = ({ mynumber }) => {
             mobile_number: String(mynumber), // Ensure this matches the backend field name
             stock_symbol: String(stockSymbol), // Ensure this matches the backend field name
             company_name: String(companyName), // Ensure this matches the backend field name
-            quantity: parseInt(quantity, 10), // Ensure this is a number
+            quantity: Integer(quantity), // Ensure this is a number
             price_per_share: parseFloat(pricePerShare), // Ensure this is a number
           }),
         }
@@ -714,24 +715,26 @@ const sendMessageToBackend = async (message, mynumber) => {
     console.log("Financial Summary Data:", financialSummaryData);
 
     // Append financial summary to the message for the first query
-    const enrichedMessage = `${message}\n\nFinancial Summary:\n${JSON.stringify(
-      financialSummaryData
+    const enrichedMessage = `${message}\n\n**Financial Summary:**\n${JSON.stringify(
+      financialSummaryData,
+      null,
+      2
     )}`;
 
     // Step 2: Send the financial summary data along with the message to the Vext API endpoint
-    const response = await fetch(
-      `https://payload.vextapp.com/hook/HGIJ6CJBFG/catch/1`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Apikey: "Api-Key 7oPWx7TV.NNqgjamVW8T7rI5AGlQZWPNsjY2ZEOJS",
-        },
-        body: JSON.stringify({
-          payload: enrichedMessage,
-        }),
-      }
-    );
+const response = await fetch(
+  `https://payload.vextapp.com/hook/HGIJ6CJBFG/catch/1`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Apikey: "Api-Key BkYXg9W6.bwYBTTkbW5bjwlyWJumCQmjKwjBKGC5n",
+    },
+    body: JSON.stringify({
+      payload: enrichedMessage,
+    }),
+  }
+);
 
     if (!response.ok) {
       console.error("Failed to send message to Vext API", response.status);
@@ -739,6 +742,7 @@ const sendMessageToBackend = async (message, mynumber) => {
     }
 
     const data = await response.json();
+    console.log(data);
     return data.text;
   } catch (error) {
     console.error("Error sending message:", error);
@@ -807,7 +811,7 @@ const ChatBot = ({ payload, mynumber }) => {
         item.sender === "user" ? style.userMessage : style.botMessage,
       ]}
     >
-      <Text style={style.messageText}>{item.text}</Text>
+      <Markdown style={markdownStyles}>{item.text}</Markdown>
     </View>
   );
 
@@ -822,7 +826,10 @@ const ChatBot = ({ payload, mynumber }) => {
       />
 
       {isLoading && (
-        <Text style={style.processingText}>Processing your request...</Text>
+        <View style={style.loadingContainer}>
+          <ActivityIndicator size='small' color='#007BFF' />
+          <Text style={style.processingText}>Processing your request...</Text>
+        </View>
       )}
 
       <View style={style.inputContainer}>
@@ -833,12 +840,24 @@ const ChatBot = ({ payload, mynumber }) => {
           placeholder='Type your message...'
           placeholderTextColor='#6C757D'
         />
-        <Button title='Send' onPress={handleUserMessage} color='#D1D3D4' />
+        <Button title='Send' onPress={handleUserMessage} color='#007BFF' />
       </View>
     </View>
   );
 };
 
+// Markdown styling
+const markdownStyles = {
+  body: { color: "#333333", fontSize: 16, fontFamily: "Helvetica Neue" },
+  strong: { fontWeight: "bold" },
+  em: { fontStyle: "italic" },
+  bullet_list: { marginVertical: 5 },
+  ordered_list: { marginVertical: 5 },
+  list_item: { flexDirection: "row", alignItems: "center" },
+  paragraph: { marginVertical: 5 },
+};
+
+// Chat styles
 const style = StyleSheet.create({
   container: {
     flex: 1,
@@ -870,12 +889,6 @@ const style = StyleSheet.create({
     backgroundColor: "#D1D3D4",
     borderBottomRightRadius: 0,
   },
-  messageText: {
-    color: "#333333",
-    fontSize: 16,
-    lineHeight: 24,
-    fontFamily: "Helvetica Neue",
-  },
   inputContainer: {
     flexDirection: "row",
     padding: 12,
@@ -895,10 +908,14 @@ const style = StyleSheet.create({
     fontFamily: "Helvetica Neue",
     backgroundColor: "#F1F1F1",
   },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+  },
   processingText: {
-    alignSelf: "flex-end",
-    marginHorizontal: 20,
-    marginBottom: 10,
+    marginLeft: 10,
     fontSize: 16,
     color: "#6C757D",
   },

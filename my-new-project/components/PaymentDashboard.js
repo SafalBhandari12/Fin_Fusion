@@ -229,16 +229,43 @@ const PaymentDashboard = ({ route }) => {
     );
   };
 
+  const fetchBalance = async () => {
+    try {
+      const response = await fetch(
+        "https://finfusion-v2.onrender.com/get_wallet_amount",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ mobile_number: mynumber }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setBalance(data.wallet_amount);
+      } else {
+        Alert.alert("Error", data.message || "Failed to fetch balance.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "An error occurred while fetching balance.");
+      console.error("Balance Fetch Error:", error);
+    }
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
+
+    // Fetch the updated balance
+    fetchBalance();
 
     // Reset all states
     setSelectedContact(null);
     setMpin("");
     setAmount("");
     setCategory("");
-    setBalance(initialBalance);
-    setShowBalance(false);
 
     // Simulate a network request or any async operation
     setTimeout(() => {
